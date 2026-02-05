@@ -65,6 +65,7 @@ All services start automatically and communicate over an internal Docker network
 
 ### gRPC API
 The Identity Management service exposes the following gRPC methods (defined in idm.proto):
+
 Login(email, password) – returns an authentication token
 
 ValidateToken(token) – validates token and returns user details
