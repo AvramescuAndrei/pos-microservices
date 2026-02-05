@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - posnet
+
+  mariadb:
+    image: mariadb:11
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pos_bd
+      MYSQL_USER: pos_user
+      MYSQL_PASSWORD: pos_user123
+    ports:
+      - "3306:3306"
+    networks:
+      - posnet
+
+  idm-grpc-service:
+    build:
+      context: ./idm-grpc-service
+    container_name: idm-grpc-service
+    ports:
+      - "50051:50051"
+    networks:
+      - posnet
+
+  event-webservice:
+    build:
+      context: ./event-webservice
+    container_name: event-webservice
+    environment:
+      DB_NAME: pos_bd
+      DB_USER: pos_user
+      DB_PASSWORD: pos_user123
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+
+      IDM_HOST: idm-grpc-service
+      IDM_PORT: "50051"
+    depends_on:
+      - mariadb
+      - idm-grpc-service
+    ports:
+      - "8001:8001"
+    networks:
+      - posnet
+
+  client-webservice:
+    build:
+      context: ./client-webservice
+    container_name: client-webservice
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: client_webservice
+
+      EVENT_WS_URL: http://event-webservice:8001/api/event-manager
+
+      IDM_HOST: idm-grpc-service
+      IDM_PORT: "50051"
+    depends_on:
+      - mongo
+      - event-webservice
+      - idm-grpc-service
+    ports:
+      - "8000:8000"
+    networks:
+      - posnet
+
+networks:
+  posnet:
+    driver: bridge
